@@ -1,122 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <script
-      type="text/javascript"
-      src="https://getfirebug.com/firebug-lite-debug.js"
-    ></script>
-    <meta name="description" content="CS4406 Computer Graphics - Exercise #1" />
-    <meta charset="utf-8" />
-    <title>Programming Assignment Unit 3</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Bouncing Cube with Enhanced Lighting in Three.js" />
+    <title>Bouncing Cube with Enhanced Lighting</title>
     <style>
-      #container {
-        background: #000000;
-        width: 100%;
+      body,
+      html {
+        margin: 0;
+        padding: 0;
         height: 100%;
       }
+      #container {
+        width: 400px;
+        height: 400px;
+        margin: 100px auto;
+        background: #000000;
+      }
     </style>
-    <meta charset="utf-8" />
-    <title>CS4406 Computer Graphics - Exercise #3</title>
   </head>
   <body>
     <div id="container"></div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
-    <script src="http://uopeopleweb.com/js/dat.gui.min.js"></script>
-    <script src="https://threejs.org/build/three.js"></script>
-    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js"></script>
-    <script src="http://uopeopleweb.com/js/math.js"></script>
-    <script src="http://uopeopleweb.com/js/Detector.js"></script>
+
+    <!-- Include Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/94/three.min.js"></script>
 
     <script type="text/javascript">
-      // Set the scene size
-      var WIDTH = 500,
-        HEIGHT = 500;
+      // Step 1: Set up the scene
+      var scene = new THREE.Scene(); // The container for all objects in the 3D world
 
-      // Set some camera attributes
-      var VIEW_ANGLE = 45,
-        ASPECT = WIDTH / HEIGHT,
-        NEAR = 1,
-        FAR = 1000;
+      // Step 2: Create an orthographic camera for a 2D-like view
+      var aspect = 400 / 400; // Aspect ratio of the canvas
+      var camera = new THREE.OrthographicCamera(
+        -20 * aspect, // Left boundary
+        20 * aspect,  // Right boundary
+        20,           // Top boundary
+        -20,          // Bottom boundary
+        0.1,          // Near clipping plane
+        100           // Far clipping plane
+      );
+      camera.position.z = 30; // Set the camera back to see the entire scene
 
-      // Get the DOM element to attach to
-      var $container = $("#container");
-
-      // Create a WebGL renderer, camera, and a scene
+      // Step 3: Set up the renderer and enable shadows
       var renderer = new THREE.WebGLRenderer();
-      var scene = new THREE.Scene();
-      var clock = new THREE.Clock();
-      var camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
+      renderer.setSize(400, 400); // Set canvas dimensions
+      renderer.shadowMap.enabled = true; // Enable shadow rendering
+      document.getElementById("container").appendChild(renderer.domElement);
 
-      // The camera starts at 0,0,0 so pull it back
-      camera.position.z = 200;
-      scene.add(camera);
+      // Step 4: Create a cube and its material
+      var geometry = new THREE.BoxGeometry(5, 5, 5); // Cube dimensions
+      var material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // A red, light-reactive material
+      var cube = new THREE.Mesh(geometry, material); // Combine geometry and material into a mesh
+      cube.castShadow = true; // Allow the cube to cast shadows
+      scene.add(cube); // Add the cube to the scene
 
-      // Set up camera controls
-      var cameraControls = new THREE.OrbitControls(camera, renderer.domElement);
-      cameraControls.addEventListener("mousemove", renderer);
-      cameraControls.autoRotate = true;
+      // Step 5: Create a plane for the cube to cast shadows onto
+      var planeGeometry = new THREE.PlaneGeometry(50, 50); // Plane dimensions
+      var planeMaterial = new THREE.MeshStandardMaterial({ color: 0x888888 }); // Gray material
+      var plane = new THREE.Mesh(planeGeometry, planeMaterial); // Create the plane mesh
+      plane.rotation.x = -Math.PI / 2; // Rotate the plane to lay flat
+      plane.position.y = -7; // Place the plane below the cube
+      plane.receiveShadow = true; // Allow the plane to receive shadows
+      scene.add(plane); // Add the plane to the scene
 
-      // Start the renderer
-      renderer.setSize(WIDTH, HEIGHT);
-      $container.append(renderer.domElement);
+      // Step 6: Add a light-yellow point light in the upper-left corner
+      var pointLight = new THREE.PointLight(0xffffcc, 2); // Light with yellow tint and intensity 2
+      pointLight.position.set(-20, 20, 10); // Position in the upper-left corner
+      pointLight.castShadow = true; // Enable shadow casting
+      scene.add(pointLight); // Add the light to the scene
 
-      // Define the object parameters
-      var N = 12;
-      var mesh;
-      var directionX = 1;
-      var directionY = 1;
+      // Step 7: Add an ambient light for general illumination
+      var ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light with moderate intensity
+      scene.add(ambientLight); // Add the ambient light to the scene
 
-      // Create the 3D object (sphere)
-      var geometry = new THREE.SphereGeometry(10, 32, 32); // Create a sphere
-      var material = new THREE.MeshLambertMaterial({ color: 0x00ff00 }); // Initial color green
-      mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
+      // Step 8: Set up variables for cube movement
+      var speedX = 0.1; // Horizontal movement speed
+      var speedY = 0.5; // Vertical movement speed
 
-      // Define the light source (yellow, upper left corner)
-      var light = new THREE.PointLight(0xffffaa, 1, 500);
-      light.position.set(-150, 150, 200);
-      scene.add(light);
+      // Step 9: Get the canvas dimensions for boundary detection
+      var canvasWidth = renderer.domElement.width;
+      var canvasHeight = renderer.domElement.height;
 
-      // Define the animation loop
+      // Step 10: Create the animation loop
       function animate() {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animate); // Schedule the next frame
 
-        // Update the position of the object
-        mesh.position.x += directionX * 2; // Change the speed as needed
-        mesh.position.y += directionY * 2;
+        // Update the cube's position
+        cube.position.x += speedX; // Move horizontally
+        cube.position.y += speedY; // Move vertically
 
-        // Bounce off the walls
-        if (mesh.position.x >= 250 || mesh.position.x <= -250) {
-          directionX *= -1;
-          changeColor(); // Change color on bounce
+        // Check for collisions with viewport boundaries
+        if (Math.abs(cube.position.x) + 2.5 >= canvasWidth / 20) {
+          speedX = -speedX; // Reverse horizontal direction
+          changeColor(); // Change cube color on collision
         }
-        if (mesh.position.y >= 250 || mesh.position.y <= -250) {
-          directionY *= -1;
-          changeColor(); // Change color on bounce
+        if (Math.abs(cube.position.y) + 2.5 >= canvasHeight / 20) {
+          speedY = -speedY; // Reverse vertical direction
+          changeColor(); // Change cube color on collision
         }
 
-        // Update the camera controls
-        cameraControls.update();
-        render();
-      }
-
-      // Function to render the scene
-      function render() {
+        // Render the updated scene
         renderer.render(scene, camera);
       }
 
-      // Function to change the color of the object when bouncing
+      // Step 11: Define the function to change the cube's color
       function changeColor() {
-        var color = new THREE.Color(
-          Math.random(),
-          Math.random(),
-          Math.random()
-        ); // Random color
-        mesh.material.color.set(color);
+        var r = Math.random(); // Random red component
+        var g = Math.random(); // Random green component
+        var b = Math.random(); // Random blue component
+        cube.material.color.setRGB(r, g, b); // Apply the new random color
       }
 
-      // Start the animation loop
-      animate();
+      // Step 12: Start the animation
+      animate(); // Begin the animation loop
     </script>
   </body>
 </html>
